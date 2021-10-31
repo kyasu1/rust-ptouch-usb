@@ -17,9 +17,9 @@ pub fn grayscale_to_matrix(mut image: image::DynamicImage) -> Matrix {
     let mut cropped = image.crop(0, 0, crate::NORMAL_PRINTER_WIDTH, image.dimensions().1);
 
     // shrink
-    let mut shrinked = image.resize(
+    let mut resized = image.resize(
         crate::NORMAL_PRINTER_WIDTH,
-        image.dimensions().1,
+        cropped.dimensions().1 * 2,
         FilterType::Lanczos3,
     );
 
