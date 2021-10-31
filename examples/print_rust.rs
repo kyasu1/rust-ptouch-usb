@@ -9,13 +9,6 @@ use std::path::Path;
 fn main() {
     env_logger::init();
 
-    let file = "examples/assets/neko.jpg";
-    let label: image::DynamicImage = image::open(file).unwrap();
-
-    grayscale_to_matrix(label);
-
-    return;
-
     enum PrintOption {
         TestLabelNormalRes,
         TestLabelHighRes,
@@ -74,18 +67,18 @@ fn main() {
             .print(Label2 { counter: 2 })
             .unwrap(),
         PrintOption::TestGrayScale => {
-            let file = "examples/assets/label-720-300.png";
+            let file = "examples/assets/neko.jpg";
             let label: image::DynamicImage = image::open(file).unwrap();
 
-            grayscale_to_matrix(label);
+            let matrix = grayscale_to_matrix(label);
 
-            // let printer = Printer::new(profile, media)
-            //     .high_resolution(false)
-            //     .cut_at_end(true)
-            //     .two_colors(false)
-            //     .enable_auto_cut(1);
+            let printer = Printer::new(profile, media)
+                .high_resolution(true)
+                .cut_at_end(true)
+                .two_colors(false)
+                .enable_auto_cut(1);
 
-            // printer.print(vec![bw].into_iter()).unwrap();
+            printer.print(vec![matrix].into_iter()).unwrap();
         }
     };
 }
