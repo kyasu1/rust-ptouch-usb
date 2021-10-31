@@ -26,7 +26,7 @@ pub fn grayscale_to_matrix(mut image: image::DynamicImage) -> Matrix {
     buffer.save("test.png");
 
     let (_, length) = buffer.dimensions();
-    step_filter_normal(50, length, buffer.to_vec())
+    step_filter_normal(127, length, buffer.to_vec())
 }
 
 pub fn step_filter_normal(threashold: u8, length: u32, bytes: Vec<u8>) -> Matrix {
@@ -38,11 +38,8 @@ pub fn step_filter_wide(threashold: u8, length: u32, bytes: Vec<u8>) -> Matrix {
 }
 
 fn step_filter(threashold: u8, width: u32, length: u32, bytes: Vec<u8>) -> Matrix {
-    // convert a grayscale image to 1-bit black and white data
+    // convert a grayscale image to 1-bit black and white data compressed to byte
     // threashold = 80 seems to work fine if original data is monochrome.
-    // TODO: Add support for a dithering algorithm to print photos
-    //
-    // width must be
     let mut bw: Vec<Vec<u8>> = Vec::new();
 
     for y in 0..length {
