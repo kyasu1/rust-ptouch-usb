@@ -24,7 +24,7 @@ pub fn grayscale_to_matrix(mut image: image::DynamicImage) -> Matrix {
     );
 
     let color_map = image::imageops::colorops::BiLevel;
-    let mut buffer = cropped.into_luma8();
+    let mut buffer = resized.into_luma8();
     image::imageops::colorops::dither(&mut buffer, &color_map);
 
     println!("dimensions: {:?}", buffer.dimensions());
