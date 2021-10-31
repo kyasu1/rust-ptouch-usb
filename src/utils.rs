@@ -2,22 +2,17 @@
 ///
 use crate::Matrix;
 use image::GenericImageView;
-use std::os::unix::thread;
 
 #[cfg(feature = "image")]
-use image::{imageops::FilterType, ImageBuffer};
+use image::imageops::FilterType;
 
 #[cfg(feature = "image")]
 pub fn grayscale_to_matrix(mut image: image::DynamicImage) -> Matrix {
-    use std::io::Read;
-
-    use image::DynamicImage;
-
     // crop
-    let mut cropped = image.crop(0, 0, crate::NORMAL_PRINTER_WIDTH, image.dimensions().1);
+    let cropped = image.crop(0, 0, crate::NORMAL_PRINTER_WIDTH, image.dimensions().1);
 
-    // shrink
-    let mut resized = image.resize(
+    // resize
+    let resized = image.resize_exact(
         crate::NORMAL_PRINTER_WIDTH,
         cropped.dimensions().1 * 2,
         FilterType::Lanczos3,
