@@ -23,9 +23,10 @@ pub fn grayscale_to_matrix(mut image: image::DynamicImage) -> Matrix {
     image::imageops::colorops::dither(&mut buffer, &color_map);
 
     println!("dimensions: {:?}", buffer.dimensions());
+    buffer.save("test.png");
 
     let (_, length) = buffer.dimensions();
-    step_filter_normal(80, length, buffer.to_vec())
+    step_filter_normal(50, length, buffer.to_vec())
 }
 
 pub fn step_filter_normal(threashold: u8, length: u32, bytes: Vec<u8>) -> Matrix {
