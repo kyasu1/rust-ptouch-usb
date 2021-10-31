@@ -1,30 +1,43 @@
 # ptouch
 
-This crate provides raw printing capability for Brother P-Touch QL series label printers connected as USB device. It allows to print programatically generated label images. Bunch of labels are represented by a struct implemnting `Iterator` trait which allows lazy generation. The label data is respresented as a two dimensional array, Vec<Vec<u8>>, conversion from another image formats can be easily done. This driver supports printing with multiple printers at a same time.
+This crate provides raw printing capability for Brother P-Touch QL series label printers connected via USB port. It also provides utility functions to convert PNG images to printer friendly format including two-color and high-resolutiong formats.
+
+The label data sent to printers is respresented as a two dimensional array, `Vec<Vec<u8>>`, each row represents a rastered line data. 
+
+The label data sent to printer are represented by a collection of binary data which implemnts `Iterator` trait with lazy generation. The label data is respresented as a two dimensional array, Vec<Vec<u8>>, conversion from another image formats can be easily done.
 
 ## Features
 
-- USB connection is supported.
+- Allow printing multiple devices connected through USB ports at same time.
 - Print multiple labels at once.
 - High resolution printing support.
-- Two colors printing support.
-- Support multiple printers on one computer.
+- [] Two colors printing support.
 
 ## Usage
 
 ### Media Tape
 
-Choose a media tape whatever you want to use and install it in the printer, then specify the matching media.
+Theare are two kinds of media tapes, Continuous and DieCut. Each one has several size variations. The supported media types are follows.
+
+```
+    Continuous12,
+    Continuous29,
+    Continuous38,
+    Continuous50,
+    Continuous54,
+    Continuous62,
+    Continuous62Red,
+```    
+
+Install a media tape to your printer, then specify the matching type. In this example we choose Continous tape with 62mm width.
 
 ```rust
 let media = ptouch::Media::Continous(ContinuousType::Continuous62);
 ```
 
-Theare are two types of media tape, Continuous and DieCut, each one has several size variations. In this example we choose Continous tape with 62mm width.
+### PTouch device model and serial number
 
-### Serial Number and Model
-
-You can inspect USB ports by `lsusb -v` which will show something like follows where `iProduct` and `iSerial` are what we need.
+You can inspect USB ports by `lsusb -v` which shows something like below, where `iProduct` and `iSerial` are what we need.
 
 ```
 Bus 001 Device 003: ID 04f9:209b Brother Industries, Ltd 
@@ -44,7 +57,7 @@ Device Descriptor:
   iSerial                 3 000G0Z000000
 ```
 
-With those information we can intialize our configurations as follows.
+With these information we can intialize our configurations as follows.
 
 ```rust
 let config: Config = Config::new(Model::QL800, "000G0Z000000".to_string(), media)
@@ -58,9 +71,9 @@ These are default settings, `high_resolution` and `two_colors` options work but 
 
 ### Label Image Data
 
-This part is tricky, since this crate provides only printing capabilities, label data must be prepared with compatible format. As shown in the printer manual, QL series expects image data with a 1bit index bitmap split by lines in an appropriate orders. Please see the manual for more detail.
+This part is tricky, since this crate provides only printing capabilities, label data must be prepared with compatible format. As shown in the PTouch printer documentation, QL series expects image data with an 1-bit indexed bitmap split by lines in an appropriate orders. Please see the document for more detail.
 
-In this example we create an image data with 720 x 400 px size by using an application. Then using `image` crate to read and convert it to a grayscale data. Then using `step_filter_normal` function, which is supplied with this crate, we binalize and pack bits 90 bytes width vector data.
+In this example we create an image data with a size of 720 x 400 pixel by using an application. Then using `image` crate to read and convert it to a grayscale data. Then using `step_filter_normal` function, which is supplied with this crate, we binalize and pack bits 90 bytes width vector data.
 
 ```rust
 let file = "examples/rust-logo.png";
@@ -162,3 +175,23 @@ https://gill.net.in/posts/reverse-engineering-a-usb-device-with-rust/
 ## License
 
 MIT
+
+
+
+```
+use ptouch_rs::{Printer, PrinterProfile, Model, Media};
+
+let file = "examples/assets/label-720-300.png";
+let label: image::DynamicImage = image::open(file).unwrap().grayscale();
+let (_, length) = label.dimensions();
+let bytes = label.to_bytes();
+let bw = step_filter_normal(80, length, bytes);
+
+let printer = Printer::new(profile, media)
+    .high_resolution(false)
+    .cut_at_end(true)
+    .two_colors(false)
+    .enable_auto_cut(1);
+
+printer.print(vec![bw].into_iter()).unwrap();
+```

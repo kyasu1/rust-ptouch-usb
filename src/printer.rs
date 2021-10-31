@@ -1,13 +1,10 @@
-use log::{debug, info, error};
-use rusb::{Context, Device, DeviceDescriptor, DeviceHandle, Direction, TransferType, UsbContext};
-use std::time::Duration;
+use log::{debug, info, warn};
 
-use crate::{
-    error::{Error, PrinterError},
-    media::Media,
-    model::Model,
-    Matrix,
-};
+pub use self::printer_profile::{PrinterProfile, Status};
+
+mod printer_profile;
+
+use crate::{error::Error, media::Media, Matrix};
 
 #[derive(Debug, Clone, Copy)]
 struct Endpoint {
@@ -18,229 +15,81 @@ struct Endpoint {
 }
 
 pub struct Printer {
-    handle: Box<DeviceHandle<Context>>,
-    endpoint_out: Endpoint,
-    endpoint_in: Endpoint,
+    profile: PrinterProfile,
+    media: Media,
     config: Config,
 }
 
 impl Printer {
-    pub fn new(config: Config) -> Result<Self, Error> {
-        // rusb::set_log_level(rusb::LogLevel::Debug);
-        match Context::new() {
-            Ok(mut context) => {
-                match Self::open_device(
-                    &mut context,
-                    0x04F9,
-                    config.model.pid(),
-                    config.serial.clone(),
-                ) {
-                    Ok((mut device, device_desc, mut handle)) => {
-                        handle.reset()?;
-
-                        let endpoint_in = match Self::find_endpoint(
-                            &mut device,
-                            &device_desc,
-                            Direction::In,
-                            TransferType::Bulk,
-                        ) {
-                            Some(endpoint) => endpoint,
-                            None => return Err(Error::MissingEndpoint),
-                        };
-
-                        let endpoint_out = match Self::find_endpoint(
-                            &mut device,
-                            &device_desc,
-                            Direction::Out,
-                            TransferType::Bulk,
-                        ) {
-                            Some(endpoint) => endpoint,
-                            None => return Err(Error::MissingEndpoint),
-                        };
-
-                        // QL-800では`has_kernel_driver`が`true`となる
-                        // QL-820NWBでは`has_kernel_driver`が`false`となる
-                        // `has_kernel_driver`が`true`の場合に、カーネルドライバーをデタッチしないとエラーとなる
-                        //
-                        handle.set_auto_detach_kernel_driver(true)?;
-                        let has_kernel_driver = match handle.kernel_driver_active(0) {
-                            Ok(true) => {
-                                handle.detach_kernel_driver(0).ok();
-                                true
-                            }
-                            _ => false,
-                        };
-                        info!(" Kernel driver support is {}", has_kernel_driver);
-                        handle.set_active_configuration(1)?;
-                        handle.claim_interface(0)?;
-                        handle.set_alternate_setting(0, 0)?;
-
-                        Ok(Printer {
-                            handle: Box::new(handle),
-                            endpoint_out,
-                            endpoint_in,
-                            config,
-                        })
-                    }
-                    Err(err) => {
-                        debug!("{:?}", err);
-                        Err(Error::DeviceOffline)
-                    },
-                }
-            }
-            Err(err) => Err(Error::UsbError(err)),
-        }
-    }
-
-    fn open_device(
-        context: &mut Context,
-        vid: u16,
-        pid: u16,
-        serial: String,
-    ) -> Result<(Device<Context>, DeviceDescriptor, DeviceHandle<Context>), Error> {
-        let devices =  context.devices()?; 
-
-        for device in devices.iter() {
-            let device_desc = match device.device_descriptor() {
-                Ok(d) => d,
-                Err(err) => {
-                    debug!("{:?}", err);
-                    continue
-                },
-            };
-            debug!("{:?}", device_desc);
-
-            if device_desc.vendor_id() == vid && device_desc.product_id() == pid {
-                match device.open() {
-                    Ok(handle) => {
-                        let timeout = Duration::from_secs(1);
-                        let languages =  handle.read_languages(timeout)?;
-
-                        if languages.len() > 0 {
-                            let language = languages[0];
-                            match handle.read_serial_number_string(language, &device_desc, timeout)
-                            {
-                                Ok(s) => {
-                                    if s == serial {
-                                        return Ok((device, device_desc, handle));
-                                    } else {
-                                        continue;
-                                    }
-                                }
-                                Err(err) => {
-                                    debug!("Failed to read serial number string: {:?}", err);
-                                    continue
-                                },
-                            }
-                        } else {
-                            continue;
-                        }
-                    }
-                    Err(err) => {
-                        debug!("Failed to open device: {:?}", err);
-                        continue
-                    },
-                }
-            }
-        }
-        debug!("No device match with this serial: {:?}", serial);
-        Err(Error::DeviceOffline)
-    }
-
-    fn find_endpoint(
-        device: &mut Device<Context>,
-        device_desc: &DeviceDescriptor,
-        direction: Direction,
-        transfer_type: TransferType,
-    ) -> Option<Endpoint> {
-        for n in 0..device_desc.num_configurations() {
-            let config_desc = match device.config_descriptor(n) {
-                Ok(c) => c,
-                Err(_) => continue,
-            };
-            for interface in config_desc.interfaces() {
-                for interface_desc in interface.descriptors() {
-                    for endpoint_desc in interface_desc.endpoint_descriptors() {
-                        if endpoint_desc.direction() == direction
-                            && endpoint_desc.transfer_type() == transfer_type
-                        {
-                            return Some(Endpoint {
-                                config: config_desc.number(),
-                                iface: interface_desc.interface_number(),
-                                setting: interface_desc.setting_number(),
-                                address: endpoint_desc.address(),
-                            });
-                        }
-                    }
-                }
-            }
-        }
-        None
-    }
-
-    fn write(&self, buf: Vec<u8>) -> Result<usize, Error> {
-        let timeout = Duration::from_secs(10);
-        let result = self
-            .handle
-            .write_bulk(self.endpoint_out.address, &buf, timeout);
-        match result {
-            Ok(n) => {
-                if n == buf.len() {
-                    Ok(n)
-                } else {
-                    debug!(
-                        "write error: bytes wrote {} != bytes supplied {}, possibly timeout ?",
-                        n,
-                        buf.len()
-                    );
-                    Err(Error::InvalidResponse(n))
-                }
-            }
-            Err(e) => Err(Error::UsbError(e)),
+    pub fn new(profile: PrinterProfile, media: Media) -> Self {
+        Self {
+            profile,
+            media,
+            config: Config::default(),
         }
     }
 
     /// Read printer status.
-    /// 
+    ///
     /// This method is convinent for inspection when a new media is added.
-    /// 
+    ///
     pub fn check_status(&self) -> Result<Status, Error> {
         self.request_status()?;
-        self.read_status()
+        self.profile.read_status()
     }
 
-    fn read_status(&self) -> Result<Status, Error> {
-        let timeout = Duration::from_secs(1);
-        let mut buf: [u8; 32] = [0x00; 32];
-        let mut counter = 0;
+    /// Cancel printing
+    pub fn cancel(&self) -> Result<(), Error> {
+        let buf = self.initialize();
+        self.profile.write(buf)?;
+        Ok(())
+    }
 
-        while counter < 10 {
-            match self
-                .handle
-                .read_bulk(self.endpoint_in.address, &mut buf, timeout)
-            {
-                // TODO: Check the first 4bytes match to [0x80, 0x20, 0x42, 0x34]
-                // TODO: Check the error status
-                Ok(32) => {
-                    let status = Status::from_buf(buf);
-                    debug!("Raw status code: {:X?}", buf);
-                    debug!("Parsed Status struct: {:?}", status);
-                    if status.phase == Phase::Receiving {
-                        return Ok(status);
-                    } else {
-                        std::thread::sleep(std::time::Duration::from_secs(1));
-                    }
-                }
-                Ok(_) => {
-                    std::thread::sleep(std::time::Duration::from_secs(1));
-                }
-                Err(e) => return Err(Error::UsbError(e)),
-            };
-            counter = counter + 1;
+    /// Send multipe bitmapped images to a printer
+    pub fn print(&self, images: impl Iterator<Item = Matrix>) -> Result<(), Error> {
+        self.request_status()?;
+        match self.profile.read_status() {
+            Ok(status) => {
+                status.check_media(self.media)?;
+                self.print_label(images)?;
+                Ok(())
+            }
+            Err(err) => Err(err),
         }
-        Err(Error::ReadStatusTimeout)
     }
 
+    pub fn enable_auto_cut(mut self, size: u8) -> Self {
+        self.config.auto_cut = AutoCut::Enabled(size);
+        self
+    }
+
+    /// Diable auto cutting
+    pub fn disable_auto_cut(mut self) -> Self {
+        self.config.auto_cut = AutoCut::Disabled;
+        self
+    }
+
+    pub fn cut_at_end(mut self, flag: bool) -> Self {
+        self.config.cut_at_end = flag;
+        self
+    }
+
+    pub fn high_resolution(mut self, high_resolution: bool) -> Self {
+        self.config.high_resolution = high_resolution;
+        self
+    }
+
+    pub fn set_feed_in_dots(mut self, feed: u16) -> Self {
+        self.config.feed = Some(feed);
+        self
+    }
+
+    pub fn two_colors(mut self, two_colors: bool) -> Self {
+        self.config.two_colors = two_colors;
+        self
+    }
+
+    // Always need to send these Hex values when issuing a new command.
     fn initialize(&self) -> Vec<u8> {
         let mut buf: Vec<u8> = Vec::new();
         buf.append(&mut [0x00; 400].to_vec());
@@ -251,30 +100,7 @@ impl Printer {
     fn set_media(&self, buf: &mut std::vec::Vec<u8>) {
         buf.append(&mut [0x1B, 0x69, 0x7A].to_vec());
 
-        self.config.media.set_media(buf, true);
-    }
-
-    /// Cancel printing
-    /// 
-    pub fn cancel(&self) -> Result<(), Error> {
-        let buf = self.initialize();
-        self.write(buf)?;
-        Ok(())
-    }
-
-    /// Print labels
-    /// 
-    /// 
-    pub fn print(&self, images: impl Iterator<Item = Matrix>) -> Result<(), Error> {
-        self.request_status()?;
-        match self.read_status() {
-            Ok(status) => {
-                status.check_media(self.config.media)?;
-                self.print_label(images)?;
-                Ok(())
-            }
-            Err(err) => Err(err),
-        }
+        self.media.set_media(buf, true);
     }
 
     fn print_label(&self, images: impl Iterator<Item = Matrix>) -> Result<(), Error> {
@@ -284,7 +110,7 @@ impl Printer {
         preamble.append(&mut [0x4D, 0x00].to_vec()); // Set to no compression mode
 
         // Apply config values
-        match self.config.clone().build() {
+        match self.config.clone().build(self.media) {
             Ok(mut buf) => preamble.append(&mut buf),
             Err(err) => return Err(err),
         }
@@ -342,11 +168,11 @@ impl Printer {
 
                     if iter.peek().is_some() {
                         buf.push(0x0C); // FF : Print
-                        self.write(buf)?;
-                        self.read_status()?;
+                        self.profile.write(buf)?;
+                        self.profile.read_status()?;
                     } else {
                         buf.push(0x1A); // Control-Z : Print then Eject
-                        self.write(buf)?;
+                        self.profile.write(buf)?;
                     }
                 }
                 None => {
@@ -360,207 +186,51 @@ impl Printer {
     fn request_status(&self) -> Result<usize, Error> {
         let mut buf: Vec<u8> = self.initialize();
         buf.append(&mut [0x1b, 0x69, 0x53].to_vec());
-        self.write(buf)
+        self.profile.write(buf)
     }
 }
 
-///
-/// Status received from the printer encoded to Rust friendly type.
-///
-#[derive(Debug)]
-pub struct Status {
-    model: Model,
-    error: PrinterError,
-    media: Option<Media>,
-    mode: u8,
-    status_type: StatusType,
-    phase: Phase,
-    notification: Notification,
-    id: u8,
-}
-
-impl Status {
-    fn from_buf(buf: [u8; 32]) -> Self {
-        Status {
-            model: Model::from_code(buf[4]),
-            error: PrinterError::from_buf(buf),
-            media: Media::from_buf(buf),
-            mode: buf[15],
-            status_type: StatusType::from_code(buf[18]),
-            phase: Phase::from_buf(buf),
-            notification: Notification::from_code(buf[22]),
-            id: buf[14],
-        }
-    }
-
-    pub fn check_media(self, media: Media) -> Result<(), Error> {
-        if let Some(m) = self.media {
-            if m == media {
-                Ok(())
-            } else {
-                Err(Error::InvalidMedia(media))
-            }
-        } else {
-            Err(Error::InvalidMedia(media))
-        }
-    }
-}
-
-// StatusType
-
-#[derive(Debug, PartialEq)]
-enum StatusType {
-    ReplyToRequest,
-    Completed,
-    Error,
-    Offline,
-    Notification,
-    PhaseChange,
-    Unknown,
-}
-
-impl StatusType {
-    fn from_code(code: u8) -> StatusType {
-        match code {
-            0x00 => Self::ReplyToRequest,
-            0x01 => Self::Completed,
-            0x02 => Self::Error,
-            0x04 => Self::Offline,
-            0x05 => Self::Notification,
-            0x06 => Self::PhaseChange,
-            _ => Self::Unknown,
-        }
-    }
-}
-// Phase
-
-#[derive(Debug, PartialEq)]
-enum Phase {
-    Receiving,
-    Printing,
-    Waiting(u16),
-    // Printing(u16),
-}
-
-impl Phase {
-    fn from_buf(buf: [u8; 32]) -> Self {
-        match buf[19] {
-            0x00 => Self::Receiving,
-            0x01 => Self::Printing,
-            _ => Self::Waiting(0),
-        }
-    }
-}
-
-// Notification
-
-#[derive(Debug)]
-enum Notification {
-    NotAvailable,
-    CoolingStarted,
-    CoolingFinished,
-}
-
-impl Notification {
-    fn from_code(code: u8) -> Self {
-        match code {
-            0x03 => Self::CoolingStarted,
-            0x04 => Self::CoolingFinished,
-            _ => Self::NotAvailable,
-        }
-    }
-}
-
-/// Config
-///
+/// AutoCut settings
 #[derive(Debug, Clone, Copy)]
 enum AutoCut {
     Enabled(u8),
     Disabled,
 }
 
+/// PTouch configuration settings
 #[derive(Debug, Clone)]
-pub struct Config {
-    model: Model,
-    serial: String,
-    media: Media,
+struct Config {
     auto_cut: AutoCut,
     two_colors: bool,
     cut_at_end: bool,
     high_resolution: bool,
-    feed: u16,
+    feed: Option<u16>,
 }
 
-impl Config {
-    /// Initialize configuration data with default values.
-    /// 
-    /// This method receives model and media which can not be modified after initializaton.
-    /// 
-    /// # Example
-    /// 
-    /// 
-    /// ```
-    /// let media = Continuous(Continuous29);
-    /// let model = Modell:QL800;
-    /// let config = Config::new(model, media);
-    /// ```
-    /// 
-    pub fn new(model: Model, serial: String, media: Media) -> Config {
-        Config {
-            model: model,
-            serial: serial,
-            media: media,
+impl Default for Config {
+    fn default() -> Self {
+        Self {
             auto_cut: AutoCut::Enabled(1),
             two_colors: false,
             cut_at_end: true,
             high_resolution: false,
-            feed: media.get_default_feed_dots(),
+            feed: None,
         }
     }
-
-    /// Enable auto cut per 
-    pub fn enable_auto_cut(self, size: u8) -> Self {
-        Config {
-            auto_cut: AutoCut::Enabled(size),
-            ..self
-        }
-    }
-
-    pub fn disable_auto_cut(self) -> Self {
-        Config {
-            auto_cut: AutoCut::Disabled,
-            ..self
-        }
-    }
-
-    pub fn cut_at_end(self, flag: bool) -> Self {
-        Config {
-            cut_at_end: flag,
-            ..self
-        }
-    }
-
-    pub fn high_resolution(self, high: bool) -> Self {
-        Config {
-            high_resolution: high,
-            ..self
-        }
-    }
-
-    pub fn set_feed_in_dots(self, feed: u16) -> Self {
-        Config { feed, ..self }
-    }
-
-    pub fn two_colors(self, two_colors: bool) -> Self {
-        Config { two_colors, ..self }
-    }
-
-    fn build(self) -> Result<Vec<u8>, Error> {
+}
+impl Config {
+    // Generate config data in binary format.
+    fn build(self, media: Media) -> Result<Vec<u8>, Error> {
         let mut buf: Vec<u8> = Vec::new();
 
         // Set feeding values in dots
         {
-            match self.media.check_feed_value(self.feed) {
+            let feed = match self.feed {
+                Some(feed) => feed,
+                None => media.get_default_feed_dots(),
+            };
+
+            match media.check_feed_value(feed) {
                 Ok(feed) => {
                     buf.append(&mut [0x1B, 0x69, 0x64].to_vec());
                     buf.append(&mut feed.to_vec());
@@ -574,7 +244,7 @@ impl Config {
             let mut auto_cut_num: u8 = 1;
 
             if let AutoCut::Enabled(n) = self.auto_cut {
-                various_mode = various_mode | 0b0100_0000;
+                various_mode |= 0b0100_0000;
                 auto_cut_num = n;
             }
 
@@ -589,15 +259,15 @@ impl Config {
             let mut expanded_mode: u8 = 0b00000000;
 
             if self.two_colors {
-                expanded_mode = expanded_mode | 0b0000_0001;
+                expanded_mode |= 0b0000_0001;
             }
 
             if self.cut_at_end {
-                expanded_mode = expanded_mode | 0b0000_1000;
+                expanded_mode |= 0b0000_1000;
             };
 
             if self.high_resolution {
-                expanded_mode = expanded_mode | 0b0100_0000;
+                expanded_mode |= 0b0100_0000;
             }
 
             debug!("Expanded mode: {:X}", expanded_mode);
@@ -605,5 +275,24 @@ impl Config {
             buf.append(&mut [0x1B, 0x69, 0x4B, expanded_mode].to_vec()); // ESC i K : Set expanded mode
         }
         Ok(buf)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{Endless, Media};
+
+    #[test]
+    fn build_config_with_default() {
+        let config = Config::default();
+        let media = Media::Endless(Endless::Endless62);
+
+        if let Ok(buf) = config.build(media) {
+            assert_eq!(
+                buf,
+                [27, 105, 100, 35, 0, 27, 105, 77, 64, 27, 105, 65, 1, 27, 105, 75, 8]
+            );
+        };
     }
 }

@@ -1,5 +1,3 @@
-use crate::media::Media;
-
 #[derive(Debug, Clone, Copy)]
 pub enum Model {
     QL500,

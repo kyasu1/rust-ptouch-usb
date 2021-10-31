@@ -1,4 +1,4 @@
-use ptouch::{Config, ContinuousType, Media, Model, Printer};
+use ptouch::{Endless, Media, Model, Printer, PrinterProfile};
 //
 // cargo run --example read_status 1273 8349 000J9Z880381
 //
@@ -18,19 +18,16 @@ fn main() {
     let pid: u16 = FromStr::from_str(args[2].as_ref()).unwrap(); // 8349
     let serial: String = FromStr::from_str(args[3].as_ref()).unwrap();
     */
-    let media = Media::Continuous(ContinuousType::Continuous62);
 
-    let config: Config = Config::new(Model::QL800, "000G0Z714634".to_string(), media)
-        .high_resolution(true)
-        .cut_at_end(true)
-        .two_colors(false)
-        .enable_auto_cut(1);
+    let media = Media::Endless(Endless::Endless62);
 
-    match Printer::new(config) {
-        Ok(printer) => match printer.check_status() {
-            Ok(status) => println!("{:?}", status),
-            Err(err) => println!("Error {:?}", err),
-        },
-        Err(err) => panic!("Invalid configuration settings: {}", err),
+    let profile =
+        PrinterProfile::build_usb_profile(Model::QL800, "000G0Z714634".to_string()).unwrap();
+
+    let printer = Printer::new(profile, media);
+
+    match printer.check_status() {
+        Ok(status) => println!("{:?}", status),
+        Err(err) => println!("Error {:?}", err),
     }
 }

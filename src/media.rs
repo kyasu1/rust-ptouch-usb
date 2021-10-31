@@ -1,22 +1,22 @@
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Media {
-    Continuous(ContinuousType),
-    DieCut(DieCutType),
+    Endless(Endless),
+    DieCut(DieCut),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ContinuousType {
-    Continuous12,
-    Continuous29,
-    Continuous38,
-    Continuous50,
-    Continuous54,
-    Continuous62,
-    Continuous62Red,
+pub enum Endless {
+    Endless12,
+    Endless29,
+    Endless38,
+    Endless50,
+    Endless54,
+    Endless62,
+    Endless62Red,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum DieCutType {
+pub enum DieCut {
     DieCut17x54,
     DieCut17x87,
     DieCut23x23,
@@ -62,8 +62,8 @@ pub struct MediaSpec {
 impl Media {
     pub fn spec(&self) -> MediaSpec {
         match self {
-            Self::Continuous(t) => match t {
-                ContinuousType::Continuous12 => MediaSpec {
+            Self::Endless(t) => match t {
+                Endless::Endless12 => MediaSpec {
                     id: 257,
                     width: Width {
                         mm: 12,
@@ -75,7 +75,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: None,
                 },
-                ContinuousType::Continuous29 => MediaSpec {
+                Endless::Endless29 => MediaSpec {
                     id: 258,
                     width: Width {
                         mm: 29,
@@ -87,7 +87,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: None,
                 },
-                ContinuousType::Continuous38 => MediaSpec {
+                Endless::Endless38 => MediaSpec {
                     id: 264,
                     width: Width {
                         mm: 38,
@@ -99,7 +99,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: None,
                 },
-                ContinuousType::Continuous50 => MediaSpec {
+                Endless::Endless50 => MediaSpec {
                     id: 262,
                     width: Width {
                         mm: 50,
@@ -111,7 +111,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: None,
                 },
-                ContinuousType::Continuous54 => MediaSpec {
+                Endless::Endless54 => MediaSpec {
                     id: 261,
                     width: Width {
                         mm: 54,
@@ -123,7 +123,7 @@ impl Media {
                     margin: MediaSize { mm: 1.9, dots: 23 },
                     offset: None,
                 },
-                ContinuousType::Continuous62 => MediaSpec {
+                Endless::Endless62 => MediaSpec {
                     id: 259,
                     width: Width {
                         mm: 62,
@@ -135,7 +135,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: None,
                 },
-                ContinuousType::Continuous62Red => MediaSpec {
+                Endless::Endless62Red => MediaSpec {
                     id: 259,
                     width: Width {
                         mm: 62,
@@ -149,7 +149,7 @@ impl Media {
                 },
             },
             Self::DieCut(t) => match t {
-                DieCutType::DieCut17x54 => MediaSpec {
+                DieCut::DieCut17x54 => MediaSpec {
                     id: 269,
                     width: Width {
                         mm: 17,
@@ -161,7 +161,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut17x87 => MediaSpec {
+                DieCut::DieCut17x87 => MediaSpec {
                     id: 270,
                     width: Width {
                         mm: 17,
@@ -173,7 +173,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut23x23 => MediaSpec {
+                DieCut::DieCut23x23 => MediaSpec {
                     id: 370,
                     width: Width {
                         mm: 23,
@@ -185,7 +185,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut29x42 => MediaSpec {
+                DieCut::DieCut29x42 => MediaSpec {
                     id: 358,
                     width: Width {
                         mm: 29,
@@ -197,7 +197,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut29x90 => MediaSpec {
+                DieCut::DieCut29x90 => MediaSpec {
                     id: 271,
                     width: Width {
                         mm: 29,
@@ -209,7 +209,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut38x90 => MediaSpec {
+                DieCut::DieCut38x90 => MediaSpec {
                     id: 272,
                     width: Width {
                         mm: 38,
@@ -221,7 +221,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut39x48 => MediaSpec {
+                DieCut::DieCut39x48 => MediaSpec {
                     id: 367,
                     width: Width {
                         mm: 39,
@@ -233,7 +233,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut52x29 => MediaSpec {
+                DieCut::DieCut52x29 => MediaSpec {
                     id: 374,
                     width: Width {
                         mm: 52,
@@ -245,7 +245,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut54x29 => MediaSpec {
+                DieCut::DieCut54x29 => MediaSpec {
                     id: 382,
                     width: Width {
                         mm: 54,
@@ -257,7 +257,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut60x86 => MediaSpec {
+                DieCut::DieCut60x86 => MediaSpec {
                     id: 383,
                     width: Width {
                         mm: 60,
@@ -269,7 +269,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut62x29 => MediaSpec {
+                DieCut::DieCut62x29 => MediaSpec {
                     id: 274,
                     width: Width {
                         mm: 62,
@@ -281,7 +281,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut62x100 => MediaSpec {
+                DieCut::DieCut62x100 => MediaSpec {
                     id: 275,
                     width: Width {
                         mm: 62,
@@ -296,7 +296,7 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: Some(MediaSize { mm: 3.0, dots: 35 }),
                 },
-                DieCutType::DieCut12Dia => MediaSpec {
+                DieCut::DieCut12Dia => MediaSpec {
                     id: 362,
                     width: Width {
                         mm: 12,
@@ -308,7 +308,7 @@ impl Media {
                     margin: MediaSize { mm: 2.0, dots: 24 },
                     offset: Some(MediaSize { mm: 2.0, dots: 24 }),
                 },
-                DieCutType::DieCut24Dia => MediaSpec {
+                DieCut::DieCut24Dia => MediaSpec {
                     id: 363,
                     width: Width {
                         mm: 24,
@@ -320,7 +320,7 @@ impl Media {
                     margin: MediaSize { mm: 2.0, dots: 24 },
                     offset: Some(MediaSize { mm: 2.0, dots: 24 }),
                 },
-                DieCutType::DieCut58Dia => MediaSpec {
+                DieCut::DieCut58Dia => MediaSpec {
                     id: 273,
                     width: Width {
                         mm: 58,
@@ -339,43 +339,43 @@ impl Media {
     pub fn from_id(id: u16) -> Option<Self> {
         match id {
             // Document says it is 0x4A but actual value seems to be 0x0A
-            257 => Some(Self::Continuous(ContinuousType::Continuous12)),
-            258 => Some(Self::Continuous(ContinuousType::Continuous29)),
-            264 => Some(Self::Continuous(ContinuousType::Continuous38)),
-            262 => Some(Self::Continuous(ContinuousType::Continuous50)),
-            261 => Some(Self::Continuous(ContinuousType::Continuous54)),
-            259 => Some(Self::Continuous(ContinuousType::Continuous62)),
-            //   0x81 => Some(Self::Continuous(ContinuousType::Continuous62Red)),
+            257 => Some(Self::Endless(Endless::Endless12)),
+            258 => Some(Self::Endless(Endless::Endless29)),
+            264 => Some(Self::Endless(Endless::Endless38)),
+            262 => Some(Self::Endless(Endless::Endless50)),
+            261 => Some(Self::Endless(Endless::Endless54)),
+            259 => Some(Self::Endless(Endless::Endless62)),
+            //   0x81 => Some(Self::Endless(EndlessType::Endless62Red)),
             // Same as above, 0x0B not 0x4B
-            269 => Some(Self::DieCut(DieCutType::DieCut17x54)),
-            270 => Some(Self::DieCut(DieCutType::DieCut17x87)),
-            370 => Some(Self::DieCut(DieCutType::DieCut23x23)),
-            358 => Some(Self::DieCut(DieCutType::DieCut29x42)),
-            271 => Some(Self::DieCut(DieCutType::DieCut29x90)),
-            272 => Some(Self::DieCut(DieCutType::DieCut38x90)),
-            367 => Some(Self::DieCut(DieCutType::DieCut39x48)),
-            374 => Some(Self::DieCut(DieCutType::DieCut52x29)),
-            382 => Some(Self::DieCut(DieCutType::DieCut54x29)),
-            383 => Some(Self::DieCut(DieCutType::DieCut60x86)),
-            274 => Some(Self::DieCut(DieCutType::DieCut62x29)),
-            275 => Some(Self::DieCut(DieCutType::DieCut62x100)),
-            362 => Some(Self::DieCut(DieCutType::DieCut12Dia)),
-            363 => Some(Self::DieCut(DieCutType::DieCut24Dia)),
-            273 => Some(Self::DieCut(DieCutType::DieCut58Dia)),
+            269 => Some(Self::DieCut(DieCut::DieCut17x54)),
+            270 => Some(Self::DieCut(DieCut::DieCut17x87)),
+            370 => Some(Self::DieCut(DieCut::DieCut23x23)),
+            358 => Some(Self::DieCut(DieCut::DieCut29x42)),
+            271 => Some(Self::DieCut(DieCut::DieCut29x90)),
+            272 => Some(Self::DieCut(DieCut::DieCut38x90)),
+            367 => Some(Self::DieCut(DieCut::DieCut39x48)),
+            374 => Some(Self::DieCut(DieCut::DieCut52x29)),
+            382 => Some(Self::DieCut(DieCut::DieCut54x29)),
+            383 => Some(Self::DieCut(DieCut::DieCut60x86)),
+            274 => Some(Self::DieCut(DieCut::DieCut62x29)),
+            275 => Some(Self::DieCut(DieCut::DieCut62x100)),
+            362 => Some(Self::DieCut(DieCut::DieCut12Dia)),
+            363 => Some(Self::DieCut(DieCut::DieCut24Dia)),
+            273 => Some(Self::DieCut(DieCut::DieCut58Dia)),
             _ => None,
         }
     }
 
     pub fn get_default_feed_dots(&self) -> u16 {
         match self {
-            Self::Continuous(_) => 35,
+            Self::Endless(_) => 35,
             Self::DieCut(_) => 0,
         }
     }
 
     pub fn check_feed_value(&self, feed: u16) -> Result<[u8; 2], String> {
         match self {
-            Self::Continuous(_) => {
+            Self::Endless(_) => {
                 if feed < 35 || feed > 1500 {
                     Err(format!("Feed value {} is out range.", feed))
                 } else {
@@ -398,7 +398,7 @@ impl Media {
         let qualiry: u8 = if qualiy { 0b01000000 } else { 0b00000000 };
         let spec = self.spec();
         match self {
-            Self::Continuous(_) => {
+            Self::Endless(_) => {
                 buf.push(0x86 | qualiry);
                 buf.push(0x0A);
             }
@@ -420,35 +420,35 @@ impl Media {
         match t {
             0x0A => match w {
                 // Document says it is 0x4A but actual value seems to be 0x0A
-                12 => Some(Self::Continuous(ContinuousType::Continuous12)),
-                29 => Some(Self::Continuous(ContinuousType::Continuous29)),
-                38 => Some(Self::Continuous(ContinuousType::Continuous38)),
-                50 => Some(Self::Continuous(ContinuousType::Continuous50)),
-                54 => Some(Self::Continuous(ContinuousType::Continuous54)),
+                12 => Some(Self::Endless(Endless::Endless12)),
+                29 => Some(Self::Endless(Endless::Endless29)),
+                38 => Some(Self::Endless(Endless::Endless38)),
+                50 => Some(Self::Endless(Endless::Endless50)),
+                54 => Some(Self::Endless(Endless::Endless54)),
                 62 => match c {
-                    0x01 => Some(Self::Continuous(ContinuousType::Continuous62)),
-                    0x81 => Some(Self::Continuous(ContinuousType::Continuous62Red)),
+                    0x01 => Some(Self::Endless(Endless::Endless62)),
+                    0x81 => Some(Self::Endless(Endless::Endless62Red)),
                     _ => None,
                 },
                 _ => None,
             },
             0x0B => match (w, l) {
                 // Same as above, 0x0B not 0x4B
-                (17, 54) => Some(Self::DieCut(DieCutType::DieCut17x54)),
-                (17, 87) => Some(Self::DieCut(DieCutType::DieCut17x87)),
-                (23, 23) => Some(Self::DieCut(DieCutType::DieCut23x23)),
-                (29, 42) => Some(Self::DieCut(DieCutType::DieCut29x42)),
-                (29, 90) => Some(Self::DieCut(DieCutType::DieCut29x90)),
-                (38, 90) => Some(Self::DieCut(DieCutType::DieCut38x90)),
-                (39, 48) => Some(Self::DieCut(DieCutType::DieCut39x48)),
-                (52, 29) => Some(Self::DieCut(DieCutType::DieCut52x29)),
-                (54, 29) => Some(Self::DieCut(DieCutType::DieCut54x29)),
-                (60, 86) => Some(Self::DieCut(DieCutType::DieCut60x86)),
-                (62, 29) => Some(Self::DieCut(DieCutType::DieCut62x29)),
-                (62, 100) => Some(Self::DieCut(DieCutType::DieCut62x100)),
-                (12, 12) => Some(Self::DieCut(DieCutType::DieCut12Dia)),
-                (24, 24) => Some(Self::DieCut(DieCutType::DieCut24Dia)),
-                (58, 58) => Some(Self::DieCut(DieCutType::DieCut58Dia)),
+                (17, 54) => Some(Self::DieCut(DieCut::DieCut17x54)),
+                (17, 87) => Some(Self::DieCut(DieCut::DieCut17x87)),
+                (23, 23) => Some(Self::DieCut(DieCut::DieCut23x23)),
+                (29, 42) => Some(Self::DieCut(DieCut::DieCut29x42)),
+                (29, 90) => Some(Self::DieCut(DieCut::DieCut29x90)),
+                (38, 90) => Some(Self::DieCut(DieCut::DieCut38x90)),
+                (39, 48) => Some(Self::DieCut(DieCut::DieCut39x48)),
+                (52, 29) => Some(Self::DieCut(DieCut::DieCut52x29)),
+                (54, 29) => Some(Self::DieCut(DieCut::DieCut54x29)),
+                (60, 86) => Some(Self::DieCut(DieCut::DieCut60x86)),
+                (62, 29) => Some(Self::DieCut(DieCut::DieCut62x29)),
+                (62, 100) => Some(Self::DieCut(DieCut::DieCut62x100)),
+                (12, 12) => Some(Self::DieCut(DieCut::DieCut12Dia)),
+                (24, 24) => Some(Self::DieCut(DieCut::DieCut24Dia)),
+                (58, 58) => Some(Self::DieCut(DieCut::DieCut58Dia)),
                 _ => None,
             },
             _ => None,
