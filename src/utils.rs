@@ -1,37 +1,74 @@
 /// choose a step filter depending on the priter width.
 ///
 use crate::Matrix;
-use image::GenericImageView;
+use image::{GenericImage, GenericImageView, ImageBuffer, Luma};
 
-#[cfg(feature = "image")]
 use image::imageops::FilterType;
 
-#[cfg(feature = "image")]
-pub fn grayscale_to_matrix(image: image::DynamicImage) -> Matrix {
+/// imageはプリンターにセットされたラベルに適合するサイズになっている前提で2値化する
+pub fn convert(image: image::DynamicImage, model: crate::model::Model) -> Matrix {
+    // let color_map = image::imageops::colorops::BiLevel;
+    // let buffer = image::imageops::colorops::index_colors(&image.into_luma8(), &color_map);
+    // step_filter(127, model.pins(), buffer.dimensions().1, buffer.to_vec())
+    step_filter(127, model.pins(), image.dimensions().1, image.to_bytes())
+}
+
+/// 任意のimageをラベルのサイズに合わせて印刷できるように2値化する
+pub fn convert_with_fit(
+    image: image::DynamicImage,
+    high_res: bool,
+    model: crate::model::Model,
+    media: crate::media::Media,
+) -> Matrix {
     let (w, h) = image.dimensions();
+    let pins = model.pins();
 
     // resize the image to fit the label width.
     // For the high-resolution printing, set the factor to 2.
-    let length = crate::NORMAL_PRINTER_WIDTH * h / w;
-    let factor = 1;
-    let resized = image.resize_exact(
-        crate::NORMAL_PRINTER_WIDTH,
-        length * factor,
-        FilterType::Nearest,
-    );
+    let length = pins * h / w;
+    let factor = if high_res { 2 } else { 1 };
+    let resized = image.resize_exact(pins, length * factor, FilterType::Nearest);
 
     let color_map = image::imageops::colorops::BiLevel;
     let mut buffer = resized.into_luma8();
     image::imageops::colorops::dither(&mut buffer, &color_map);
 
-    step_filter_normal(127, buffer.dimensions().1, buffer.to_vec())
+    step_filter(127, pins, buffer.dimensions().1, buffer.to_vec())
 }
 
-pub fn step_filter_normal(threashold: u8, length: u32, bytes: Vec<u8>) -> Matrix {
+/// 任意のimageをラベルのサイズに合わせて印刷できるように2値化する
+pub fn convert_fit(
+    image: image::DynamicImage,
+    high_res: bool,
+    model: crate::model::Model,
+    media: crate::media::Media,
+) -> Matrix {
+    let (w, h) = image.dimensions();
+    let pins = model.pins();
+    let left = 12;
+    let effective = 696;
+
+    // resize the image to fit the label width.
+    // For the high-resolution printing, set the factor to 2.
+    let length = effective * h / w;
+    let factor = if high_res { 2 } else { 1 };
+    let resized = image.resize_exact(effective, length * factor, FilterType::Nearest);
+
+    let mut canvas = image::DynamicImage::new_luma8(pins, length);
+    canvas.copy_from(&resized, left, 0).unwrap();
+
+    let color_map = image::imageops::colorops::BiLevel;
+    let mut buffer = canvas.into_luma8();
+    image::imageops::colorops::dither(&mut buffer, &color_map);
+
+    step_filter(127, pins, buffer.dimensions().1, buffer.to_vec())
+}
+
+fn step_filter_normal(threashold: u8, length: u32, bytes: Vec<u8>) -> Matrix {
     step_filter(threashold, crate::NORMAL_PRINTER_WIDTH, length, bytes)
 }
 
-pub fn step_filter_wide(threashold: u8, length: u32, bytes: Vec<u8>) -> Matrix {
+fn step_filter_wide(threashold: u8, length: u32, bytes: Vec<u8>) -> Matrix {
     step_filter(threashold, crate::WIDE_PRINTER_WIDTH, length, bytes)
 }
 

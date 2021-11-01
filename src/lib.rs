@@ -20,9 +20,23 @@ pub use crate::{
     model::Model,
     printer::Printer,
     printer::PrinterProfile,
-    utils::{grayscale_to_matrix, step_filter_normal, step_filter_wide},
+    utils::{convert, convert_fit},
 };
 
 pub type Matrix = Vec<Vec<u8>>;
 pub const NORMAL_PRINTER_WIDTH: u32 = 720;
 pub const WIDE_PRINTER_WIDTH: u32 = 1296;
+
+pub enum PRINTER_WIDTH {
+    NORMAL,
+    WIDE,
+}
+
+impl PRINTER_WIDTH {
+    fn to_int(self) -> u32 {
+        match self {
+            PRINTER_WIDTH::NORMAL => 720,
+            PRINTER_WIDTH::WIDE => 1296,
+        }
+    }
+}

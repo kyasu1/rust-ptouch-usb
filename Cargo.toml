@@ -10,15 +10,11 @@ readme = "README.md"
 keywords = ["usb", "libusb", "rusb", "ptouch" ]
 edition = "2018"
 
-[features]
-default = ["image"]
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 rusb = "0.9"
 thiserror = "1.0"
 log = "0.4"
-image = { version = "0.23", optional = true}
+image = { version = "0.23" }
 
 [dev-dependencies]
 env_logger = "0.9"

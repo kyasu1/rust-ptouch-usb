@@ -1,8 +1,5 @@
 use image::{GenericImage, GenericImageView, ImageBuffer, Luma};
-use ptouch::{
-    grayscale_to_matrix, step_filter_normal, DieCut, Endless, Matrix, Media, Model, Printer,
-    PrinterProfile,
-};
+use ptouch::{DieCut, Endless, Matrix, Media, Model, Printer, PrinterProfile};
 use qrcode::QrCode;
 
 fn main() {
@@ -16,7 +13,7 @@ fn main() {
         TestGrayScale,
     }
 
-    let option = PrintOption::TestGrayScale;
+    let option = PrintOption::TestLabelHighResMultipleQrCode;
 
     let media = Media::Endless(Endless::Endless62);
 
@@ -27,9 +24,8 @@ fn main() {
         PrintOption::TestLabelNormalRes => {
             let file = "examples/assets/label-720-300.png";
             let label: image::DynamicImage = image::open(file).unwrap();
-            let (_, length) = label.dimensions();
-            let bytes = label.to_bytes();
-            let bw = step_filter_normal(80, length, bytes);
+
+            let matrix = ptouch::convert(label, Model::QL800);
 
             let printer = Printer::new(profile, media)
                 .high_resolution(false)
@@ -37,14 +33,14 @@ fn main() {
                 .two_colors(false)
                 .enable_auto_cut(1);
 
-            printer.print(vec![bw].into_iter()).unwrap();
+            let result = printer.print(vec![matrix].into_iter());
+            println!("{:?}", result);
         }
         PrintOption::TestLabelHighRes => {
             let file = "examples/assets/label-720-600.png";
-            let label: image::DynamicImage = image::open(file).unwrap().grayscale();
-            let (_, length) = label.dimensions();
-            let bytes = label.to_bytes();
-            let bw = step_filter_normal(80, length, bytes);
+            let label: image::DynamicImage = image::open(file).unwrap();
+
+            let matrix = ptouch::convert(label, Model::QL800);
 
             let printer = Printer::new(profile, media)
                 .high_resolution(true)
@@ -52,7 +48,8 @@ fn main() {
                 .two_colors(false)
                 .enable_auto_cut(1);
 
-            printer.print(vec![bw].into_iter()).unwrap();
+            let result = printer.print(vec![matrix].into_iter());
+            println!("{:?}", result);
         }
         PrintOption::TestLabelHighResMultiple => {
             Printer::new(profile, media)
@@ -69,7 +66,7 @@ fn main() {
             let file = "examples/assets/yagi.jpg";
             let label: image::DynamicImage = image::open(file).unwrap();
 
-            let matrix = grayscale_to_matrix(label);
+            let matrix = ptouch::convert_fit(label, false, Model::QL800, media);
 
             let printer = Printer::new(profile, media)
                 .high_resolution(false)
@@ -77,7 +74,8 @@ fn main() {
                 .two_colors(false)
                 .enable_auto_cut(1);
 
-            printer.print(vec![matrix].into_iter()).unwrap();
+            let result = printer.print(vec![matrix].into_iter());
+            println!("{:?}", result);
         }
     };
 }
@@ -100,8 +98,8 @@ impl Iterator for Label {
             buffer.invert();
             buffer.copy_from(&image, 0, 0).unwrap();
             buffer.invert();
-            let bytes = buffer.to_bytes();
-            let bw = step_filter_normal(80, length, bytes);
+
+            let bw = ptouch::convert(buffer, Model::QL800);
             self.counter = self.counter - 1;
             Some(bw)
         } else {
@@ -131,10 +129,10 @@ impl Iterator for Label2 {
             buffer.invert();
             buffer.copy_from(&qrcode, 0, 0).unwrap();
 
-            let bytes = buffer.to_luma().into_raw();
-            let bw = step_filter_normal(80, length, bytes);
+            let matrix = ptouch::convert(buffer, Model::QL800);
+
             self.counter = self.counter - 1;
-            Some(bw)
+            Some(matrix)
         } else {
             None
         }

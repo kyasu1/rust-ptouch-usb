@@ -144,6 +144,9 @@ impl Printer {
                         buf.append(&mut [0x01, 0x00].to_vec());
                     }
 
+                    // Enable packbits
+                    buf.append(&mut [0x4d, 0x02].to_vec());
+
                     // Send data by splitting to raster lines
                     if self.config.two_colors {
                         for mut row in image {
@@ -159,8 +162,11 @@ impl Printer {
                         }
                     } else {
                         for mut row in image {
-                            buf.append(&mut [0x67, 0x00, 90].to_vec());
-                            buf.append(&mut row);
+                            // buf.append(&mut [0x67, 0x00, 90].to_vec());
+                            // buf.append(&mut row);
+                            let mut packed = pack_bits(row);
+                            buf.append(&mut [0x67, 0x00, packed.len() as u8].to_vec());
+                            buf.append(&mut packed);
                         }
                     }
 
@@ -284,7 +290,6 @@ fn pack_bits(src: Vec<u8>) -> Vec<u8> {
     }
 
     let src_length = src.len();
-    println!("src_length: {} ", src_length);
 
     let mut dst: Vec<u8> = Vec::new();
 
