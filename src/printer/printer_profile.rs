@@ -201,7 +201,7 @@ impl PrinterProfile {
                         if n == buf.len() {
                             Ok(n)
                         } else {
-                            debug!(
+                            warn!(
                                 "write error: bytes wrote {} != bytes supplied {}, possibly timeout ?",
                                 n,
                                 buf.len()
