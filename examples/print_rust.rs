@@ -13,9 +13,10 @@ fn main() {
         TestGrayScale,
     }
 
-    let option = PrintOption::TestLabelHighResMultipleQrCode;
+    let option = PrintOption::TestGrayScale;
 
-    let media = Media::Endless(Endless::Endless62);
+    let media = Media::Endless(Endless::Endless29);
+    let media = Media::DieCut(DieCut::DieCut12Dia);
 
     let profile =
         PrinterProfile::build_usb_profile(Model::QL800, "000G0Z714634".to_string()).unwrap();
@@ -73,7 +74,7 @@ fn main() {
                 .cut_at_end(true)
                 .two_colors(false)
                 .enable_auto_cut(1);
-
+            return;
             let result = printer.print(vec![matrix].into_iter());
             println!("{:?}", result);
         }

@@ -60,12 +60,16 @@ pub struct MediaSpec {
 }
 
 impl Media {
-    fn width(self) -> u32 {
-        // match self {
-        //     Self::Endless(media) => media.width(),
-        //     Self::DieCut(media) => media.width(),
-        // }
+    pub fn effective(self) -> u32 {
         self.spec().width.effective
+    }
+
+    pub fn scaled_length(self, w: u32, h: u32) -> u32 {
+        self.spec().width.effective * h / w
+    }
+
+    pub fn offset(self) -> u32 {
+        self.spec().width.left
     }
 
     pub fn spec(&self) -> MediaSpec {

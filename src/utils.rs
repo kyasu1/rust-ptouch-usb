@@ -1,7 +1,7 @@
 /// choose a step filter depending on the priter width.
 ///
 use crate::Matrix;
-use image::{GenericImage, GenericImageView, ImageBuffer, Luma};
+use image::{GenericImage, GenericImageView};
 
 use image::imageops::FilterType;
 
@@ -14,29 +14,9 @@ pub fn convert(image: image::DynamicImage, model: crate::model::Model) -> Matrix
 }
 
 /// 任意のimageをラベルのサイズに合わせて印刷できるように2値化する
-pub fn convert_with_fit(
-    image: image::DynamicImage,
-    high_res: bool,
-    model: crate::model::Model,
-    media: crate::media::Media,
-) -> Matrix {
-    let (w, h) = image.dimensions();
-    let pins = model.pins();
-
-    // resize the image to fit the label width.
-    // For the high-resolution printing, set the factor to 2.
-    let length = pins * h / w;
-    let factor = if high_res { 2 } else { 1 };
-    let resized = image.resize_exact(pins, length * factor, FilterType::Nearest);
-
-    let color_map = image::imageops::colorops::BiLevel;
-    let mut buffer = resized.into_luma8();
-    image::imageops::colorops::dither(&mut buffer, &color_map);
-
-    step_filter(127, pins, buffer.dimensions().1, buffer.to_vec())
-}
-
-/// 任意のimageをラベルのサイズに合わせて印刷できるように2値化する
+/// Convert the provided image to fit the effective width of the label.
+/// This is for printing random images to an Endless tapes.
+/// If you use a DieCut tapes, the data outside of the labels length will be discarded.
 pub fn convert_fit(
     image: image::DynamicImage,
     high_res: bool,
@@ -45,21 +25,23 @@ pub fn convert_fit(
 ) -> Matrix {
     let (w, h) = image.dimensions();
     let pins = model.pins();
-    let left = 12;
-    let effective = 696;
+    let effective = media.effective();
+    let left = media.offset();
+    let length = media.scaled_length(w, h);
 
     // resize the image to fit the label width.
     // For the high-resolution printing, set the factor to 2.
-    let length = effective * h / w;
     let factor = if high_res { 2 } else { 1 };
     let resized = image.resize_exact(effective, length * factor, FilterType::Nearest);
 
+    // create a canvas which can hold the area of the printer width versus the length
     let mut canvas = image::DynamicImage::new_luma8(pins, length);
     canvas.copy_from(&resized, left, 0).unwrap();
 
     let color_map = image::imageops::colorops::BiLevel;
     let mut buffer = canvas.into_luma8();
     image::imageops::colorops::dither(&mut buffer, &color_map);
+    buffer.save("preview.png");
 
     step_filter(127, pins, buffer.dimensions().1, buffer.to_vec())
 }
