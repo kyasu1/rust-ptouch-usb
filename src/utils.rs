@@ -6,11 +6,11 @@ use image::{GenericImage, GenericImageView};
 use image::imageops::FilterType;
 
 /// imageはプリンターにセットされたラベルに適合するサイズになっている前提で2値化する
-pub fn convert(image: image::DynamicImage, model: crate::model::Model) -> Matrix {
-    // let color_map = image::imageops::colorops::BiLevel;
-    // let buffer = image::imageops::colorops::index_colors(&image.into_luma8(), &color_map);
-    // step_filter(127, model.pins(), buffer.dimensions().1, buffer.to_vec())
-    step_filter(127, model.pins(), image.dimensions().1, image.to_bytes())
+pub fn convert(image: image::DynamicImage, pins: u32) -> Matrix {
+    let color_map = image::imageops::colorops::BiLevel;
+    let buffer = image::imageops::colorops::index_colors(&image.into_luma8(), &color_map);
+    step_filter(127, pins, buffer.dimensions().1, buffer.to_vec())
+    // step_filter(127, pins, image.dimensions().1, image.to_bytes())
 }
 
 /// 任意のimageをラベルのサイズに合わせて印刷できるように2値化する
@@ -20,11 +20,10 @@ pub fn convert(image: image::DynamicImage, model: crate::model::Model) -> Matrix
 pub fn convert_fit(
     image: image::DynamicImage,
     high_res: bool,
-    model: crate::model::Model,
+    pins: u32,
     media: crate::media::Media,
 ) -> Matrix {
     let (w, h) = image.dimensions();
-    let pins = model.pins();
     let effective = media.effective();
     let left = media.offset();
     let length = media.scaled_length(w, h);

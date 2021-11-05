@@ -217,7 +217,7 @@ impl PrinterProfile {
         }
     }
 
-    pub(crate) fn read_status(&self) -> Result<Status, Error> {
+    pub fn read_status(&self) -> Result<Status, Error> {
         match &self.connection {
             Connection::Usb {
                 endpoint_in,
@@ -243,6 +243,7 @@ impl PrinterProfile {
                             }
                         }
                         Ok(_) => {
+                            debug!("Raw status code: {:X?}", buf);
                             std::thread::sleep(std::time::Duration::from_secs(1));
                         }
                         Err(e) => return Err(Error::UsbError(e)),

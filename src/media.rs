@@ -13,6 +13,7 @@ pub enum Endless {
     Endless54,
     Endless62,
     Endless62Red,
+    Endless102,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -60,6 +61,33 @@ pub struct MediaSpec {
 }
 
 impl Media {
+    pub fn from_str(name: &str) -> Option<Self> {
+        match name {
+            "12" => Some(Media::Endless(Endless::Endless12)),
+            "29" => Some(Media::Endless(Endless::Endless29)),
+            "38" => Some(Media::Endless(Endless::Endless38)),
+            "50" => Some(Media::Endless(Endless::Endless50)),
+            "54" => Some(Media::Endless(Endless::Endless54)),
+            "62" => Some(Media::Endless(Endless::Endless62)),
+            "102" => Some(Media::Endless(Endless::Endless102)),
+            "17x54" => Some(Media::DieCut(DieCut::DieCut17x54)),
+            "17x87" => Some(Media::DieCut(DieCut::DieCut17x87)),
+            "23x23" => Some(Media::DieCut(DieCut::DieCut23x23)),
+            "29x42" => Some(Media::DieCut(DieCut::DieCut29x42)),
+            "29x90" => Some(Media::DieCut(DieCut::DieCut29x90)),
+            "38x90" => Some(Media::DieCut(DieCut::DieCut38x90)),
+            "39x90" => Some(Media::DieCut(DieCut::DieCut39x48)),
+            "52x29" => Some(Media::DieCut(DieCut::DieCut52x29)),
+            "54x29" => Some(Media::DieCut(DieCut::DieCut54x29)),
+            "60x86" => Some(Media::DieCut(DieCut::DieCut60x86)),
+            "62x29" => Some(Media::DieCut(DieCut::DieCut62x29)),
+            "62x100" => Some(Media::DieCut(DieCut::DieCut62x100)),
+            "d12" => Some(Media::DieCut(DieCut::DieCut12Dia)),
+            "d24" => Some(Media::DieCut(DieCut::DieCut24Dia)),
+            "d58" => Some(Media::DieCut(DieCut::DieCut58Dia)),
+            _ => None,
+        }
+    }
     pub fn effective(self) -> u32 {
         self.spec().width.effective
     }
@@ -159,6 +187,18 @@ impl Media {
                     margin: MediaSize { mm: 1.5, dots: 18 },
                     offset: None,
                 },
+                Endless::Endless102 => MediaSpec {
+                    id: 260,
+                    width: Width {
+                        mm: 102,
+                        left: 18,
+                        effective: 1164,
+                        right: 18,
+                    },
+                    length: Length { mm: 0, dots: 0 },
+                    margin: MediaSize { mm: 1.5, dots: 18 },
+                    offset: None,
+                },                
             },
             Self::DieCut(t) => match t {
                 DieCut::DieCut17x54 => MediaSpec {
